@@ -1,17 +1,17 @@
-import type { IConversation } from '../types';
+import type { IConversation } from "../types";
 
 export const createConversation = async (
-  token: string
+  token: string,
 ): Promise<IConversation> => {
-  const response = await fetch('https://tavusapi.com/v2/conversations', {
-    method: 'POST',
+  const response = await fetch("https://tavusapi.com/v2/conversations", {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': token,
+      "Content-Type": "application/json",
+      "x-api-key": token,
     },
     body: JSON.stringify({
       // Stock Demo Persona
-      persona_id: 'p9a95912',
+      persona_id: "p9a95912",
       properties: {
         apply_greenscreen: true,
       },

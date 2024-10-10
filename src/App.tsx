@@ -289,11 +289,7 @@ export const Call = () => {
           height: "1.5rem",
         }}
       >
-        {!isMicEnabled ? (
-          'Mic is Off'
-        ) : (
-          'Mic is On'
-        )}
+        {!isMicEnabled ? "Mic is Off" : "Mic is On"}
       </button>
       <DailyAudio />
     </div>
