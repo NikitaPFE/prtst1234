@@ -9,6 +9,7 @@ import {
 } from "@daily-co/daily-react";
 import { createConversation } from "./api/createConversation";
 import type { IConversation } from "./types";
+import { ReplicaRecording } from "./ReplicaRecording";
 
 const vertexShaderSource = `
   attribute vec2 a_position;
@@ -323,6 +324,18 @@ function App() {
     return token.length > 4 ? `****${token.slice(-4)}` : token;
   };
 
+  const handleSubmit = (blob: Blob) => {
+    const ext = blob.type.split('/')[1];
+    const fileName = `${Date.now()}test-video.${ext}`;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <main>
       <form onSubmit={handleStartCall} className="token-form">
@@ -352,6 +365,8 @@ function App() {
       </form>
 
       {conversation && <Call />}
+
+      <ReplicaRecording onSubmit={handleSubmit} />
     </main>
   );
 }
