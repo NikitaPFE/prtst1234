@@ -1,7 +1,6 @@
 import React, {
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -16,13 +15,20 @@ const useMediaPermissions = () => {
   useEffect(() => {
     const requestPermissions = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true,
-        });
-        // Stop tracks immediately after getting permissions
-        stream.getTracks().forEach((track) => track.stop());
-        setHasPermission(true);
+        // Check if the user has granted access to the camera and microphone
+        // if access is not granted, label and deviceId will be empty strings
+        const isAccessAllowed = (await navigator.mediaDevices.enumerateDevices()).some(el => !!el.deviceId)
+        if (!isAccessAllowed) {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true,
+          });
+          // Stop tracks immediately after getting permissions
+          stream.getTracks().forEach((track) => track.stop());
+          setHasPermission(true);
+        } else {
+          setHasPermission(true);
+        }
       } catch (error) {
         console.error('Error requesting media permissions:', error);
         setHasPermission(false);
