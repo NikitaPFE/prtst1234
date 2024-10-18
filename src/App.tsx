@@ -355,7 +355,7 @@ const Chat = ({ conversationId }: { conversationId: string }) => {
   return (
     <div>
       {/* user, replica */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "200px", overflowY: "auto" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px", height: "200px", overflowY: "auto", backgroundColor: "white" }}>
         {messages.map((message, index) => (
           <div
             key={`message-${index}`}
