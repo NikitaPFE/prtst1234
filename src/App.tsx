@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   useDaily,
   DailyVideo,
@@ -6,6 +6,7 @@ import {
   useLocalSessionId,
   useAudioTrack,
   DailyAudio,
+  useDailyEvent,
 } from "@daily-co/daily-react";
 import { createConversation } from "./api/createConversation";
 import type { IConversation } from "./types";
@@ -297,11 +298,93 @@ export const Call = () => {
   );
 };
 
+const Chat = ({ conversationId }: { conversationId: string }) => {
+  const daily = useDaily();
+  const [userMessage, setUserMessage] = useState<string>("");
+  const [messages, setMessages] = useState<{
+    role: string;
+    speech: string;
+  }[]>([]);
+
+  // {
+  //   "message_type": "conversation",
+  //   "event_type": "conversation.utterance",
+  //   "conversation_id": "c123456",
+  //   "properties": {
+  //     "role": "<string>",
+  //     "speech": "Hello, how are you?",
+  //     "visual_context": "There is a man wearing over-ear headphones in a room that seems to be in an office setting, with monitors in the background. The man seems happy, and is looking at the screen."
+  //   }
+  // }
+  useDailyEvent('app-message', useCallback((event) => {
+    if (event.data?.event_type === 'conversation.utterance') {
+      console.log('utterance', event)
+      setMessages((messages) => [...messages, {
+        role: event.data.properties.role,
+        speech: event.data.properties.speech,
+      }]);
+    }
+  }, []));
+
+  const handleSendMessage = () => {
+    if (!userMessage) return;
+    daily?.sendAppMessage({
+      "message_type": "conversation",
+      "event_type": "conversation.respond",
+      "conversation_id": conversationId,
+      "properties": {
+        "text": userMessage
+      }
+    });
+    setUserMessage("");
+  };
+
+  const handleEchoMessage = () => {
+    if (!userMessage) return;
+    daily?.sendAppMessage({
+      "message_type": "conversation",
+      "event_type": "conversation.echo",
+      "conversation_id": conversationId,
+      "properties": {
+        "text": userMessage
+      }
+    });
+    setUserMessage("");
+  };
+
+  return (
+    <div>
+      {/* user, replica */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "200px", overflowY: "auto" }}>
+        {messages.map((message, index) => (
+          <div
+            key={`message-${index}`}
+            style={{
+              textAlign: message.role === 'replica' ? 'left' : 'right',
+              marginBottom: '8px',
+            }}
+          >
+            {message.speech}
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        <input type="text" onChange={(e) => setUserMessage(e.target.value)} />
+        <div style={{ display: "flex", gap: "8px" }}>
+          <button type="button" onClick={handleSendMessage}>Send Message</button>
+          <button type="button" onClick={handleEchoMessage}>Echo</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [token, setToken] = useState("");
   const [conversation, setConversation] = useState<IConversation | null>(null);
   const [loading, setLoading] = useState(false);
   const DailyCall = useDaily();
+  const [showRecording, setShowRecording] = useState(false);
 
   const handleStartCall = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -338,6 +421,9 @@ function App() {
 
   return (
     <main>
+      <button type="button" onClick={() => setShowRecording(true)}>
+        Show Recording Example
+      </button>
       <form onSubmit={handleStartCall} className="token-form">
         <label htmlFor="token">
           Enter your Tavus API token to start, or{" "}
@@ -365,8 +451,9 @@ function App() {
       </form>
 
       {conversation && <Call />}
+      {conversation && <Chat conversationId={conversation.conversation_id} />}
 
-      <ReplicaRecording onSubmit={handleSubmit} />
+      {showRecording && <ReplicaRecording onSubmit={handleSubmit} />}
     </main>
   );
 }
