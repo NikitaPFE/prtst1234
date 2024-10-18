@@ -306,16 +306,6 @@ const Chat = ({ conversationId }: { conversationId: string }) => {
     speech: string;
   }[]>([]);
 
-  // {
-  //   "message_type": "conversation",
-  //   "event_type": "conversation.utterance",
-  //   "conversation_id": "c123456",
-  //   "properties": {
-  //     "role": "<string>",
-  //     "speech": "Hello, how are you?",
-  //     "visual_context": "There is a man wearing over-ear headphones in a room that seems to be in an office setting, with monitors in the background. The man seems happy, and is looking at the screen."
-  //   }
-  // }
   useDailyEvent('app-message', useCallback((event) => {
     if (event.data?.event_type === 'conversation.utterance') {
       console.log('utterance', event)
@@ -326,7 +316,7 @@ const Chat = ({ conversationId }: { conversationId: string }) => {
     }
   }, []));
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!userMessage) return;
     daily?.sendAppMessage({
       "message_type": "conversation",
@@ -369,7 +359,7 @@ const Chat = ({ conversationId }: { conversationId: string }) => {
         ))}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-        <input type="text" onChange={(e) => setUserMessage(e.target.value)} />
+        <input type="text" value={userMessage} onChange={(e) => setUserMessage(e.target.value)} />
         <div style={{ display: "flex", gap: "8px" }}>
           <button type="button" onClick={handleSendMessage}>Send Message</button>
           <button type="button" onClick={handleEchoMessage}>Echo</button>
