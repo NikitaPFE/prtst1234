@@ -6,11 +6,10 @@ import {
   useLocalSessionId,
   useAudioTrack,
   DailyAudio,
-  useDailyEvent,
 } from "@daily-co/daily-react";
 import { createConversation } from "./api/createConversation";
 import type { IConversation } from "./types";
-import { ReplicaRecording } from "./ReplicaRecording";
+import { endConversation } from "./api";
 
 const vertexShaderSource = `
   attribute vec2 a_position;
@@ -204,7 +203,7 @@ export const Video: React.FC<{ id: string }> = ({ id }) => {
 
   return (
     <div
-      style={{ height: "13rem", position: "relative", aspectRatio: "16 / 9" }}
+      style={{ height: "20rem", position: "relative", aspectRatio: "16 / 9" }}
     >
       <DailyVideo
         sessionId={id}
@@ -228,7 +227,7 @@ export const Video: React.FC<{ id: string }> = ({ id }) => {
   );
 };
 
-export const Call = () => {
+export const Call = ({ onLeave }: { onLeave: () => void }) => {
   const remoteParticipantIds = useParticipantIds({ filter: "remote" });
   const localParticipantId = useLocalSessionId();
   const localAudio = useAudioTrack(localParticipantId);
@@ -279,102 +278,46 @@ export const Call = () => {
           </div>
         )}
       </div>
-      <button
-        type="button"
-        onClick={toggleMicrophone}
+      <div
         style={{
+          display: "flex",
+          flexDirection: "row",
+          gap: "0.5rem",
           position: "absolute",
           top: "0",
-          right: "2rem",
-          zIndex: "50",
-          padding: "0.25rem",
-          height: "1.5rem",
+          right: "0",
+          zIndex: "10",
         }}
       >
-        {!isMicEnabled ? "Mic is Off" : "Mic is On"}
-      </button>
+        <button
+          type="button"
+          onClick={toggleMicrophone}
+          style={{
+            padding: "0.25rem",
+          }}
+        >
+          {!isMicEnabled ? "Mic is Off" : "Mic is On"}
+        </button>
+        <button
+          type="button"
+          onClick={onLeave}
+          style={{
+            padding: "0.25rem",
+          }}
+        >
+          Leave
+        </button>
+      </div>
       <DailyAudio />
     </div>
   );
 };
-
-const Chat = ({ conversationId }: { conversationId: string }) => {
-  const daily = useDaily();
-  const [userMessage, setUserMessage] = useState<string>("");
-  const [messages, setMessages] = useState<{
-    role: string;
-    speech: string;
-  }[]>([]);
-
-  useDailyEvent('app-message', useCallback((event) => {
-    if (event.data?.event_type === 'conversation.utterance') {
-      console.log('utterance', event)
-      setMessages((messages) => [...messages, {
-        role: event.data.properties.role,
-        speech: event.data.properties.speech,
-      }]);
-    }
-  }, []));
-
-  const handleSendMessage = async () => {
-    if (!userMessage) return;
-    daily?.sendAppMessage({
-      "message_type": "conversation",
-      "event_type": "conversation.respond",
-      "conversation_id": conversationId,
-      "properties": {
-        "text": userMessage
-      }
-    });
-    setUserMessage("");
-  };
-
-  const handleEchoMessage = () => {
-    if (!userMessage) return;
-    daily?.sendAppMessage({
-      "message_type": "conversation",
-      "event_type": "conversation.echo",
-      "conversation_id": conversationId,
-      "properties": {
-        "text": userMessage
-      }
-    });
-    setUserMessage("");
-  };
-
-  return (
-    <div>
-      {/* user, replica */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "8px", height: "200px", overflowY: "auto", backgroundColor: "white" }}>
-        {messages.map((message, index) => (
-          <div
-            key={`message-${index}`}
-            style={{
-              textAlign: message.role === 'replica' ? 'left' : 'right',
-              marginBottom: '8px',
-            }}
-          >
-            {message.speech}
-          </div>
-        ))}
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-        <input type="text" value={userMessage} onChange={(e) => setUserMessage(e.target.value)} />
-        <div style={{ display: "flex", gap: "8px" }}>
-          <button type="button" onClick={handleSendMessage}>Send Message</button>
-          <button type="button" onClick={handleEchoMessage}>Echo</button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function App() {
   const [token, setToken] = useState("");
   const [conversation, setConversation] = useState<IConversation | null>(null);
   const [loading, setLoading] = useState(false);
   const DailyCall = useDaily();
-  const [showRecording, setShowRecording] = useState(false);
 
   const handleStartCall = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -393,27 +336,18 @@ function App() {
     }
   };
 
+  const handleLeaveCall = () => {
+    DailyCall?.leave();
+    endConversation(conversation!.conversation_id, token);
+    setConversation(null);
+  };
+
   const getDisplayToken = () => {
     return token.length > 4 ? `****${token.slice(-4)}` : token;
   };
 
-  const handleSubmit = (blob: Blob) => {
-    const ext = blob.type.split('/')[1];
-    const fileName = `${Date.now()}test-video.${ext}`;
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    a.click();
-
-    URL.revokeObjectURL(url);
-  };
-
   return (
     <main>
-      <button type="button" onClick={() => setShowRecording(true)}>
-        Show Recording Example
-      </button>
       <form onSubmit={handleStartCall} className="token-form">
         <label htmlFor="token">
           Enter your Tavus API token to start, or{" "}
@@ -440,10 +374,7 @@ function App() {
         </div>
       </form>
 
-      {conversation && <Call />}
-      {conversation && <Chat conversationId={conversation.conversation_id} />}
-
-      {showRecording && <ReplicaRecording onSubmit={handleSubmit} />}
+      {conversation && <Call onLeave={handleLeaveCall} />}
     </main>
   );
 }

@@ -725,3 +725,20 @@ export const ReplicaRecording: React.FC<ReplicaRecordingProps> = ({
     </div>
   );
 };
+
+
+export const App = () => {
+  const handleSubmit = (blob: Blob) => {
+    const ext = blob.type.split('/')[1];
+    const fileName = `${Date.now()}test-video.${ext}`;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+
+    URL.revokeObjectURL(url);
+  };
+
+  return <ReplicaRecording onSubmit={handleSubmit} />;
+};
